@@ -1,0 +1,7 @@
+# Copy to /etc/systemd/system/mail-mcp-restart.service (optional daily restart)
+[Unit]
+Description=Restart the Mail MCP Server
+
+[Service]
+Type=oneshot
+ExecStart=/bin/systemctl restart mail-mcp.service
