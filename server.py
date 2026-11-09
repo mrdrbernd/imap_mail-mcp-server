@@ -70,13 +70,13 @@ def decode_text(value) -> str:
 def check_uid(mail_id: str) -> bytes:
     """Mail IDs are IMAP UIDs (stable, digits only)."""
     if not mail_id.isdigit():
-        raise ValueError("Ungültige Mail-ID. Bitte eine ID aus list_mails oder search_mails verwenden.")
+        raise ValueError("Invalid mail ID. Please use an ID from list_mails or search_mails.")
     return mail_id.encode()
 
 
 def check_recipient(addr: str) -> str:
     if "@" not in parseaddr(addr)[1]:
-        raise ValueError(f"Ungültige Empfängeradresse: '{addr}'")
+        raise ValueError(f"Invalid recipient address: '{addr}'")
     return addr
 
 
@@ -89,7 +89,7 @@ def imap_date(days_back: int) -> str:
 def quote(s: str) -> str:
     """Escapes a search term for IMAP and wraps it in quotes."""
     if not s.isascii():
-        raise ValueError("Suchbegriffe bitte ohne Umlaute/Sonderzeichen angeben (z. B. 'muller' statt 'müller').")
+        raise ValueError("Please use search terms without umlauts or special characters (e.g. 'muller' instead of 'müller').")
     return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
@@ -182,11 +182,11 @@ def mbox(raw: str) -> str:
 def validate_folder_name(name: str) -> str:
     name = name.strip()
     if not name:
-        raise ValueError("Ordnername darf nicht leer sein.")
+        raise ValueError("Folder name must not be empty.")
     if len(name) > 200:
-        raise ValueError("Ordnername ist zu lang (maximal 200 Zeichen).")
+        raise ValueError("Folder name is too long (maximum 200 characters).")
     if any(c in name for c in '"\\*%') or any(ord(c) < 32 for c in name):
-        raise ValueError('Ordnername enthält unzulässige Zeichen (" \\ * % oder Steuerzeichen).')
+        raise ValueError('Folder name contains invalid characters (" \\ * % or control characters).')
     return name
 
 
@@ -245,7 +245,7 @@ def ensure_folder(m, requested: str, entries: list[dict] | None = None):
     delim = server_delim(entries)
     parts = name.split(delim) if delim else [name]
     if any(not p.strip() for p in parts):
-        raise ValueError(f"Ungültiger Ordnername: '{requested}' (leerer Teil im Pfad).")
+        raise ValueError(f"Invalid folder name: '{requested}' (empty part in path).")
 
     created_any = False
     for i in range(1, len(parts) + 1):
@@ -254,14 +254,14 @@ def ensure_folder(m, requested: str, entries: list[dict] | None = None):
             raw = imap_utf7_encode(prefix)
             typ, data = m.create(mbox(raw))
             if typ != "OK":
-                raise ValueError(f"Ordner '{prefix}' konnte nicht angelegt werden: {data}")
+                raise ValueError(f"Folder '{prefix}' could not be created: {data}")
             m.subscribe(mbox(raw))
             entries.append({"raw": raw, "name": prefix, "delim": delim})
             created_any = True
 
     found = find_folder(entries, name)
     if found is None:
-        raise ValueError(f"Ordner '{requested}' konnte nach dem Anlegen nicht gefunden werden.")
+        raise ValueError(f"Folder '{requested}' could not be found after creation.")
     return found, created_any
 
 
@@ -271,17 +271,18 @@ def open_folder(m, folder: str, readonly: bool = True) -> dict:
     entries = list_entries(m)
     found = find_folder(entries, to_server_name(name, entries))
     if found is None:
-        vorhanden = ", ".join(sorted(e["name"] for e in entries)) or "keine"
-        raise ValueError(f"Ordner '{folder}' existiert nicht. Vorhandene Ordner: {vorhanden}")
+        existing = ", ".join(sorted(e["name"] for e in entries)) or "none"
+        raise ValueError(f"Folder '{folder}' does not exist. Existing folders: {existing}")
     typ, _ = m.select(mbox(found["raw"]), readonly=readonly)
     if typ != "OK":
-        raise ValueError(f"Ordner '{found['name']}' konnte nicht geöffnet werden")
+        raise ValueError(f"Folder '{found['name']}' could not be opened")
     return found
 
 
 SPECIAL_USE = {"Trash": "\\Trash", "Drafts": "\\Drafts", "Sent": "\\Sent"}
 
-# Names for providers without SPECIAL-USE flags (German and English)
+# Folder names for providers without SPECIAL-USE flags (German and English names,
+# because folders on German mail accounts are often named in German)
 NAME_FALLBACKS = {
     "Trash": ["Trash", "Papierkorb", "Gelöschte Elemente", "Deleted Items", "Deleted Messages"],
     "Drafts": ["Drafts", "Entwürfe", "Entwurf"],
@@ -301,8 +302,8 @@ def special_folder(m, role: str) -> dict:
         found = find_folder(entries, candidate)
         if found:
             return found
-    vorhanden = ", ".join(sorted(e["name"] for e in entries)) or "keine"
-    raise ValueError(f"Kein Ordner für '{role}' gefunden. Vorhandene Ordner: {vorhanden}")
+    existing = ", ".join(sorted(e["name"] for e in entries)) or "none"
+    raise ValueError(f"No folder found for '{role}'. Existing folders: {existing}")
 
 
 def system_folder(m, role: str) -> str:
@@ -324,7 +325,7 @@ def server_time() -> str:
 
 @mcp.tool()
 def mail_check() -> str:
-    """Checks the IMAP login and returns 'IMAP-Anmeldung erfolgreich' or the error message.
+    """Checks the IMAP login and returns 'IMAP login successful' or the error message.
 
     Use first when there are connection problems, or to confirm the mailbox is reachable.
     Changes nothing.
@@ -332,9 +333,9 @@ def mail_check() -> str:
     try:
         m = imap_connect()
         m.logout()
-        return "IMAP-Anmeldung erfolgreich"
+        return "IMAP login successful"
     except Exception as e:
-        return f"IMAP-Fehler: {e}"
+        return f"IMAP error: {e}"
 
 
 @mcp.tool()
@@ -364,8 +365,8 @@ def create_folder(
     try:
         found, created = ensure_folder(m, name)
         if created:
-            return f"Ordner '{found['name']}' wurde angelegt"
-        return f"Ordner '{found['name']}' existiert bereits"
+            return f"Folder '{found['name']}' created"
+        return f"Folder '{found['name']}' already exists"
     finally:
         m.logout()
 
@@ -447,7 +448,7 @@ def read_mail(
         open_folder(m, folder)
         _, data = m.uid("FETCH", check_uid(mail_id), "(BODY.PEEK[])")
         if not data or not isinstance(data[0], tuple):
-            return "Mail nicht gefunden"
+            return "Mail not found"
         mail = email.message_from_bytes(data[0][1], policy=email.policy.default)
 
         plain = mail.get_body(preferencelist=("plain",))
@@ -455,11 +456,11 @@ def read_mail(
             text = plain.get_content()
         else:
             html_part = mail.get_body(preferencelist=("html",))
-            text = html_to_text(html_part.get_content()) if html_part is not None else "(kein Textinhalt gefunden)"
+            text = html_to_text(html_part.get_content()) if html_part is not None else "(no text content found)"
 
         attachments = [decode_text(p.get_filename()) for p in mail.walk() if p.get_filename()]
         if attachments:
-            text += "\n\nAnhänge: " + ", ".join(attachments)
+            text += "\n\nAttachments: " + ", ".join(attachments)
         return text
     finally:
         m.logout()
@@ -493,8 +494,8 @@ def set_mail_status(
         open_folder(m, folder, readonly=False)
         typ, _ = m.uid("STORE", check_uid(mail_id), op, f"({flag})")
         if typ != "OK":
-            return "Statusänderung fehlgeschlagen"
-        return f"Status gesetzt: {status}"
+            return "Status change failed"
+        return f"Status set: {status}"
     finally:
         m.logout()
 
@@ -508,15 +509,15 @@ def _move(folder: str, mail_id: str, target_folder: str | None = None, role: str
         else:
             target, created = ensure_folder(m, target_folder)
         if target["raw"] == src["raw"]:
-            return "Mail liegt bereits im Zielordner"
+            return "Mail is already in the target folder"
         uid = check_uid(mail_id)
         typ, _ = m.uid("COPY", uid, mbox(target["raw"]))
         if typ != "OK":
-            return "Verschieben fehlgeschlagen"
+            return "Move failed"
         m.uid("STORE", uid, "+FLAGS", "(\\Deleted)")
         m.expunge()
-        prefix = f"Ordner '{target['name']}' wurde neu angelegt. " if created else ""
-        return f"{prefix}Mail nach '{target['name']}' verschoben"
+        prefix = f"Folder '{target['name']}' was created. " if created else ""
+        return f"{prefix}Mail moved to '{target['name']}'"
     finally:
         m.logout()
 
@@ -558,7 +559,7 @@ def build_forward(m, folder: str, mail_id: str, to: str, body: str) -> EmailMess
     open_folder(m, folder)
     _, data = m.uid("FETCH", check_uid(mail_id), "(BODY.PEEK[])")
     if not data or not isinstance(data[0], tuple):
-        raise ValueError("Originalmail nicht gefunden")
+        raise ValueError("Original mail not found")
     orig = email.message_from_bytes(data[0][1], policy=email.policy.default)
 
     text_part = orig.get_body(preferencelist=("plain",))
@@ -574,8 +575,8 @@ def build_forward(m, folder: str, mail_id: str, to: str, body: str) -> EmailMess
     orig_date = str(orig["Date"] or "")
 
     subject = orig_subject
-    if not subject.lower().startswith(("wg:", "fwd:")):
-        subject = f"WG: {subject}"
+    if not subject.lower().startswith(("fwd:", "wg:")):
+        subject = f"Fwd: {subject}"
 
     msg = EmailMessage()
     msg["From"] = MAIL_USER
@@ -585,11 +586,11 @@ def build_forward(m, folder: str, mail_id: str, to: str, body: str) -> EmailMess
     msg["Message-ID"] = make_msgid(domain=MAIL_USER.split("@")[-1])
 
     forward_block = (
-        "\n\n---------- Weitergeleitete Nachricht ----------\n"
-        f"Von: {orig_from}\n"
-        f"Datum: {orig_date}\n"
-        f"Betreff: {orig_subject}\n"
-        f"An: {orig_to}\n\n"
+        "\n\n---------- Forwarded message ----------\n"
+        f"From: {orig_from}\n"
+        f"Date: {orig_date}\n"
+        f"Subject: {orig_subject}\n"
+        f"To: {orig_to}\n\n"
         f"{orig_text}"
     )
     msg.set_content((body or "").rstrip() + forward_block)
@@ -604,7 +605,7 @@ def build_forward(m, folder: str, mail_id: str, to: str, body: str) -> EmailMess
             continue
         total += len(payload)
         if total > MAX_ATTACHMENT_BYTES:
-            raise ValueError("Die Anhänge sind zu groß (über 20 MB). Bitte die Anhänge einzeln weiterleiten oder direkt beim Absender anfordern.")
+            raise ValueError("Attachments are too large (over 20 MB). Please forward the attachments individually or request them directly from the sender.")
         maintype, subtype = part.get_content_type().split("/", 1)
         msg.add_attachment(payload, maintype=maintype, subtype=subtype, filename=decode_text(name))
     return msg
@@ -628,7 +629,7 @@ def create_draft(
     m = imap_connect()
     try:
         m.append(mbox(system_folder(m, "Drafts")), "\\Draft", None, msg.as_bytes())
-        return "Entwurf im Ordner Drafts gespeichert"
+        return "Draft saved in the Drafts folder"
     finally:
         m.logout()
 
@@ -654,7 +655,7 @@ def create_reply_draft(
         _, data = m.uid("FETCH", check_uid(mail_id),
                         "(BODY.PEEK[HEADER.FIELDS (FROM REPLY-TO TO CC SUBJECT MESSAGE-ID REFERENCES)])")
         if not data or not isinstance(data[0], tuple):
-            return "Originalmail nicht gefunden"
+            return "Original mail not found"
         orig = email.message_from_bytes(data[0][1])
 
         reply = EmailMessage()
@@ -680,7 +681,7 @@ def create_reply_draft(
         reply.set_content(body)
 
         m.append(mbox(system_folder(m, "Drafts")), "\\Draft", None, reply.as_bytes())
-        return "Antwort-Entwurf im Ordner Drafts gespeichert"
+        return "Reply draft saved in the Drafts folder"
     finally:
         m.logout()
 
@@ -695,7 +696,7 @@ def create_forward_draft(
     """Saves a forward of an existing mail as a draft in the Drafts folder. All attachments of the original are included. The draft is NOT sent.
 
     Use when the user wants to forward a mail with attachments. This is the default way to forward.
-    The subject gets 'WG:' and the original text follows a separator line with From, date, subject and To.
+    The subject gets 'Fwd:' and the original text follows a separator line with From, date, subject and To.
     Attachments up to 20 MB in total. Above that, an error is returned.
     Before saving, tell the user the recipient and subject for review.
     """
@@ -703,7 +704,7 @@ def create_forward_draft(
     try:
         msg = build_forward(m, folder, mail_id, to, body)
         m.append(mbox(system_folder(m, "Drafts")), "\\Draft", None, msg.as_bytes())
-        return "Weiterleitungs-Entwurf mit Anhängen im Ordner Drafts gespeichert"
+        return "Forward draft with attachments saved in the Drafts folder"
     finally:
         m.logout()
 
@@ -725,7 +726,7 @@ def forward_mail(
     try:
         msg = build_forward(m, folder, mail_id, to, body)
     except ValueError as e:
-        return f"Weiterleitung fehlgeschlagen: {e}"
+        return f"Forward failed: {e}"
     finally:
         m.logout()
 
@@ -735,7 +736,7 @@ def forward_mail(
             s.login(MAIL_USER, MAIL_PASSWORD)
             s.send_message(msg)
     except Exception as e:
-        return f"Versand fehlgeschlagen: {e}"
+        return f"Sending failed: {e}"
 
     try:
         m = imap_connect()
@@ -744,8 +745,8 @@ def forward_mail(
         finally:
             m.logout()
     except Exception:
-        return "Weiterleitung wurde versendet (Kopie im Ordner Sent konnte nicht gespeichert werden)"
-    return "Weiterleitung mit Anhängen wurde versendet und im Ordner Sent abgelegt"
+        return "Forward was sent (copy could not be saved to the Sent folder)"
+    return "Forward with attachments was sent and saved to the Sent folder"
 
 
 @mcp.tool()
@@ -767,7 +768,7 @@ def send_mail(
             s.login(MAIL_USER, MAIL_PASSWORD)
             s.send_message(msg)
     except Exception as e:
-        return f"Versand fehlgeschlagen: {e}"
+        return f"Sending failed: {e}"
 
     # Store a copy in Sent. Many SMTP servers do not do this automatically.
     # Note: providers that fill Sent themselves (e.g. Gmail) may produce a duplicate.
@@ -778,8 +779,8 @@ def send_mail(
         finally:
             m.logout()
     except Exception:
-        return "Mail wurde versendet (Kopie im Ordner Sent konnte nicht gespeichert werden)"
-    return "Mail wurde versendet und im Ordner Sent abgelegt"
+        return "Mail was sent (copy could not be saved to the Sent folder)"
+    return "Mail was sent and saved to the Sent folder"
 
 
 if __name__ == "__main__":
