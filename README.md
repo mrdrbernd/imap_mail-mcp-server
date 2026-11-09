@@ -1,6 +1,6 @@
 # IMAP/SMTP Mail MCP Server
 
-IMAP besonders, wenn das E-Mail-Konto nicht Gmail, Microsoft 365 etc. ist, wofür es bereits bei fast allen AI Assistants Integrationen gibt. Für alle AI Assistants, die einen aus dem Internet erreichbaren MCP Server benötigen.
+A Python MCP server for IMAP mail accounts. It is especially useful when your mail account is not Gmail, Microsoft 365 or similar, since most AI assistants already offer ready-made integrations for those. It is intended for any AI assistant that needs an MCP server reachable from the internet.
 
 ## Overview
 
@@ -47,7 +47,7 @@ sudo apt update && sudo apt upgrade -y
 sudo apt install -y python3-venv git
 ```
 
-Clone the repository into the home directory of your user (replace `pi` if your user differs):
+Clone the repository into the home directory of your user:
 
 ```bash
 cd ~
@@ -121,7 +121,7 @@ Important lines in the unit file:
 User=YOUR_USER
 WorkingDirectory=/home/YOUR_USER/mail-mcp
 ExecStart=/home/YOUR_USER/mail-mcp/venv/bin/python /home/YOUR_USER/mail-mcp/server.py
-Restart=always
+Restart=on-failure
 ```
 
 Enable and start it:
@@ -209,12 +209,10 @@ If the first request is not blocked, the Access policy is not active. Check the 
 | `502 Bad Gateway` from Cloudflare | Server not running or wrong port | `systemctl status mail-mcp`, check port 3000 |
 | `403` or login page in Langdock | Service Token headers wrong or missing | Re-enter the headers exactly; check the policy includes the token |
 | Request without headers is **not** blocked | Access policy missing or not saved | Check the application domain and the **Service Auth** policy |
-| `IMAP-Fehler` / login error in `mail_check` | Wrong host, user or password | Check `.env`; many providers need an app password |
-| `Ordner ... existiert nicht` | Folder name differs | Run `list_folders` and use the exact name |
-| `Kein Ordner für 'Drafts' gefunden` | Provider uses another name | Create the folder on the server or add its name to the fallbacks in `server.py` |
+| `IMAP error` in `mail_check` | Wrong host, user or password | Check `.env`; many providers need an app password |
+| `Folder '...' does not exist` | Folder name differs | Run `list_folders` and use the exact name |
+| `No folder found for 'Drafts'` | Provider uses another folder name | Create the folder on the server or add its name to `NAME_FALLBACKS` in `server.py` |
 | Service does not start | Wrong paths or user in unit file | Check `User=` and paths; `journalctl -u mail-mcp -e` |
-
-Note: some error messages are currently in German, as they were written for the original deployment.
 
 ## Security notes
 
