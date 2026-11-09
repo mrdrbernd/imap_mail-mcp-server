@@ -1,0 +1,16 @@
+# Copy to /etc/systemd/system/mail-mcp.service
+# Replace IHR_BENUTZER / YOUR_USER with your Linux user (e.g. pi).
+[Unit]
+Description=Mail MCP Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=YOUR_USER
+WorkingDirectory=/home/YOUR_USER/mail-mcp
+ExecStart=/home/YOUR_USER/mail-mcp/venv/bin/python /home/YOUR_USER/mail-mcp/server.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
