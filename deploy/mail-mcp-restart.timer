@@ -1,0 +1,10 @@
+# Copy to /etc/systemd/system/mail-mcp-restart.timer (restarts daily at 04:00)
+[Unit]
+Description=Daily restart of the Mail MCP Server
+
+[Timer]
+OnCalendar=*-*-* 04:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
