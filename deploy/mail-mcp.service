@@ -1,5 +1,5 @@
 # Copy to /etc/systemd/system/mail-mcp.service
-# Replace IHR_BENUTZER / YOUR_USER with your Linux user (e.g. pi).
+# Replace YOUR_USER with your Linux user (e.g. pi).
 [Unit]
 Description=Mail MCP Server
 After=network-online.target
