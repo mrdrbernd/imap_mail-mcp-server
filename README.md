@@ -1,8 +1,10 @@
 # IMAP/SMTP Mail MCP Server
 
-A small Python [MCP](https://modelcontextprotocol.io) server that gives an AI assistant (e.g. Langdock) controlled access to an IMAP/SMTP mailbox. It runs on a Raspberry Pi and is reached through a Cloudflare Tunnel, protected by Cloudflare Access (Service Token).
+IMAP besonders, wenn das E-Mail-Konto nicht Gmail, Microsoft 365 etc. ist, wofür es bereits bei fast allen AI Assistants Integrationen gibt. Für alle AI Assistants, die einen aus dem Internet erreichbaren MCP Server benötigen.
 
 ## Overview
+
+The server runs on a Raspberry Pi and is reached through a Cloudflare Tunnel, protected by Cloudflare Access (Service Token).
 
 ```
 Langdock -> https://mcp.example.com/mcp
