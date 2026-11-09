@@ -1,0 +1,14 @@
+# Secrets: never commit credentials
+.env
+*.env
+
+# Python
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
